@@ -6,6 +6,9 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTabHost;
+import androidx.fragment.app.FragmentTransaction;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,11 +22,31 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 /**
  * A simple {@link Fragment} subclass.
  */
 public class MenuListFragment extends Fragment {
+
+    /**
+     * 大画面かどうかの判定フラグ。
+     * trueが大画面、falseが通常画面。
+     * 判定ロジックは同一画面に注文完了表示用フレームレイアウトが存在するかで行う。
+     */
+    private boolean _isLayoutXLarge = true;
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        //親クラスのメソッド呼び出し
+        super.onActivityCreated(savedInstanceState);
+        //自分が所属するアクティビティかたmenuThanksFrameを取得
+        View menuThanksFrame = _parentActivity.findViewById(R.id.menuThanksFrame);
+        //menuThanksFrameが存在しない場合（通常画面の場合）
+        if(menuThanksFrame == null) {
+            //画面判定フラグを通常画面とする
+            _isLayoutXLarge = false;
+        }
+    }
+
     /**
      * このフラグメントが所属するアクティビティオブジェクト
      */
@@ -35,6 +58,16 @@ public class MenuListFragment extends Fragment {
         super.onCreate(savedInstanceState);
         //所属するアクティビティオブジェクトを取得
         _parentActivity = getActivity();
+
+        //フラグメントマネージャーを取得
+        FragmentManager manager = getFragmentManager();
+        //フラグメントマネージャーからメニューリストフラグメントを取得
+        MenuListFragment menuListFragment = (MenuListFragment) manager.findFragmentById(R.id.fragmentMenuList);
+        //メニューリストフラグメントが存在しない場合
+        if(menuListFragment == null) {
+            //画面判定フラグを通常画面とする
+            _isLayoutXLarge = false;
+        }
     }
 
     @Override
@@ -120,13 +153,37 @@ public class MenuListFragment extends Fragment {
             //定食名と金額を取得
             String menuName = item.get("name");
             String menuPrice = item.get("price");
-            //インテントオブジェクトを生成
-            Intent intent = new Intent(_parentActivity, MenuThanksActivity.class);
-            //第2画面に送るデータを格納
-            intent.putExtra("menuName", menuName);
-            intent.putExtra("menuPrice", menuPrice);
-            //第2画面の起動
-            startActivity(intent);
+
+            //引き継ぎデータをまとめて格納できるBundleオブジェクト生成
+            Bundle bundle = new Bundle();
+            //Bundleオブジェクトに引き継ぎデータを格納
+            bundle.putString("menuName", menuName);
+            bundle.putString("menuPrice", menuPrice);
+
+            //大画面の場合
+            if(_isLayoutXLarge) {
+                //フラグメントマネージャーの取得
+                FragmentManager manager = getFragmentManager();
+                //フラグメントトランザクションの開始
+                FragmentTransaction transaction = manager.beginTransaction();
+                //注文完了フラグメントを生成
+                MenuThanksFragment menuThanksFragment = new MenuThanksFragment();
+                //引き継ぎデータを注文完了フラグメントに格納
+                menuThanksFragment.setArguments(bundle);
+                //生成した注文完了フラグメントをmenuThanksFrameレイアウト部品に追加（置き換え）
+                transaction.replace(R.id.menuThanksFrame, menuThanksFragment);
+                //フラグメントトランザクションのコミット
+                transaction.commit();
+            }
+            //通常画面の場合
+            else {
+                //インテントオブジェクトを生成
+                Intent intent = new Intent(_parentActivity, MenuThanksActivity.class);
+                //第2画面に送るデータを格納
+                intent.putExtras(bundle);
+                //第2画面の起動
+                startActivity(intent);
+            }
         }
     }
 }

@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,6 +17,7 @@ import android.widget.TextView;
 
 
 public class MenuThanksFragment extends Fragment {
+
 
     /**
      * このフラグメントが所属するアクティビティオブジェクト
@@ -29,16 +32,33 @@ public class MenuThanksFragment extends Fragment {
         _parentActivity = getActivity();
     }
 
+    /**
+     * 大画面かどうかの判定フラグ。
+     * trueが大画面、falseが通常画面。
+     * 判定ロジックは同一画面に注文完了表示用フレームレイアウトが存在するかで行う。
+     */
+    private boolean _isLayoutXLarge = true;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         //フラグメントで表示する画面をXMLファイルからインフレートする
         View view = inflater.inflate(R.layout.fragment_menu_thanks, container, false);
 
-        //所属するアクティビティからインテントを取得
-        Intent intent = _parentActivity.getIntent();
-        //インテントから引き継ぎデータをまとめたもの（Bundleオブジェクト）を取得
-        Bundle extras = intent.getExtras();
+        //Bundleオブジェクトを宣言
+        Bundle extras;
+        //大画面の場合
+        if(_isLayoutXLarge) {
+            //フラグメントに埋め込まれた引き継ぎデータを取得
+            extras = getArguments();
+        }
+        //通常画面の場合
+        else {
+            //所属するアクティビティからインテントを取得
+            Intent intent = _parentActivity.getIntent();
+            //インテントから引き継ぎデータをまとめたもの（Bundleオブジェクト）を取得
+            extras = intent.getExtras();
+        }
 
         //注文した定食名と金額変数を用意。引き継ぎデータがうまく取得できなかった時のために""で初期化
         String menuName = "";
@@ -72,7 +92,21 @@ public class MenuThanksFragment extends Fragment {
     private class ButtonClickListner implements View.OnClickListener {
         @Override
         public void onClick(View view) {
-            _parentActivity.finish();
+            //大画面の場合
+            if(_isLayoutXLarge) {
+                //フラグメントマネージャーを取得
+                FragmentManager manager = getFragmentManager();
+                //フラグメントトランザクション
+                FragmentTransaction transaction = manager.beginTransaction();
+                //自分自身を削除
+                transaction.remove(MenuThanksFragment.this);
+                //フラグメントトランザクションのコミット
+                transaction.commit();
+            }
+            else {
+                //自分が所属するアクティビティを終了
+                _parentActivity.finish();
+            }
         }
     }
 
